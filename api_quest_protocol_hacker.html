@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en" class="antialiased text-slate-800 bg-slate-50">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Quest: Protocol Hacker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script>
+    function initTheme() {
+      const savedTheme = localStorage.getItem('api_quest_theme');
+      if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      }
+    }
+    initTheme();
+
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: { 50: '#f5f3ff', 100: '#ede9fe', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9' }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Clean Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* Custom Textarea for JSON Editor */
+    .json-editor {
+      background: transparent;
+      color: #1e293b;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875rem;
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      tab-size: 2;
+    }
+    
+    /* Animations */
+    @keyframes slideUpFade {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-slide-up { animation: slideUpFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    
+    .btn-tactile { transition: all 0.15s ease; }
+    .btn-tactile:active { transform: scale(0.96); }
+
+    /* HTTP Method Colors */
+    .method-get { color: #3b82f6; font-weight: 700; }
+    .method-post { color: #10b981; font-weight: 700; }
+    .method-put { color: #f59e0b; font-weight: 700; }
+    .method-delete { color: #ef4444; font-weight: 700; }
+    
+    .status-success { color: #10b981; }
+    .status-error { color: #ef4444; }
+    .status-warn { color: #f59e0b; }
+
+    /* Dark Mode Variables */
+    html.dark { background-color: #0f172a; color: #cbd5e1; color-scheme: dark; }
+    html.dark .bg-white { background-color: #1e293b; }
+    html.dark .bg-slate-50 { background-color: #0f172a; }
+    html.dark .bg-slate-100 { background-color: #334155; }
+    html.dark .border-slate-200 { border-color: #334155; }
+    html.dark .border-slate-300 { border-color: #475569; }
+    html.dark .text-slate-900 { color: #f8fafc; }
+    html.dark .text-slate-800 { color: #f1f5f9; }
+    html.dark .text-slate-600 { color: #cbd5e1; }
+    html.dark .json-editor { color: #f8fafc; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col h-screen overflow-hidden">
+
+  <!-- HEADER -->
+  <header class="h-16 flex-shrink-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 px-4 flex items-center justify-between z-30">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center shadow-md">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+      </div>
+      <div>
+        <h1 class="font-bold text-slate-900 text-lg tracking-tight">API Quest</h1>
+        <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Protocol Hacker</p>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200">
+        <span class="text-xs font-bold text-brand-600" id="hud-rank">Script Kiddie</span>
+        <span class="text-xs font-mono text-slate-500" id="hud-xp">0 XP</span>
+      </div>
+      <button onclick="toggleTheme()" class="btn-tactile p-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-500 transition shadow-sm">
+        <svg id="theme-icon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="flex-1 flex overflow-hidden">
+    
+    <!-- LEFT SIDEBAR: MISSIONS -->
+    <aside class="w-80 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col z-20">
+      <div class="p-4 border-b border-slate-200 bg-slate-50/50">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Learning Modules</h2>
+        <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+          <div id="progress-bar" class="h-full bg-brand-500 transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </div>
+      <div id="mission-list" class="flex-1 overflow-y-auto p-3 space-y-2">
+        <!-- Rendered by JS -->
+      </div>
+    </aside>
+
+    <!-- RIGHT WORKSPACE: POSTMAN CLONE -->
+    <section class="flex-1 flex flex-col bg-slate-50 min-w-0">
+      
+      <!-- MISSION BRIEFING -->
+      <div class="p-5 border-b border-slate-200 bg-white shadow-sm flex-shrink-0">
+        <div class="flex items-center justify-between mb-2">
+          <span id="mission-tier" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-brand-50 text-brand-700 border border-brand-200">Tier 1: Basics</span>
+          <span id="mission-xp" class="text-xs font-mono text-emerald-600 font-semibold">+100 XP</span>
+        </div>
+        <h2 id="mission-title" class="text-xl font-bold text-slate-900 mb-2">Mission Title</h2>
+        <p id="mission-story" class="text-sm text-slate-600 leading-relaxed mb-3"></p>
+        <div class="p-3 rounded-xl bg-blue-50/50 border border-blue-100 flex gap-3 text-sm">
+          <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <div>
+            <strong class="text-slate-900 block mb-0.5">Objective</strong>
+            <span id="mission-objective" class="text-slate-700"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- HTTP CLIENT WORKSPACE -->
+      <div class="flex-1 flex flex-col p-5 gap-4 overflow-hidden">
+        
+        <!-- URL BAR -->
+        <div class="flex gap-2 h-12 shadow-sm rounded-lg">
+          <select id="req-method" class="bg-slate-100 border border-slate-300 text-slate-800 font-bold px-4 rounded-l-lg outline-none focus:ring-2 focus:ring-brand-500 w-32 cursor-pointer transition">
+            <option value="GET" class="method-get">GET</option>
+            <option value="POST" class="method-post">POST</option>
+            <option value="PUT" class="method-put">PUT</option>
+            <option value="DELETE" class="method-delete">DELETE</option>
+          </select>
+          <input type="text" id="req-url" class="flex-1 bg-white border-y border-slate-300 px-4 font-mono text-sm text-slate-800 outline-none focus:ring-2 focus:ring-brand-500 transition" placeholder="https://api.cybercorp.net/v1/...">
+          <button onclick="sendRequest()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 rounded-r-lg transition active:bg-brand-800 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+            Send
+          </button>
+        </div>
+
+        <!-- REQUEST CONFIG TABS -->
+        <div class="bg-white border border-slate-200 rounded-lg flex-1 flex flex-col min-h-0 shadow-sm overflow-hidden">
+          <div class="flex border-b border-slate-200 bg-slate-50 px-2">
+            <button onclick="switchReqTab('params')" id="tab-btn-params" class="px-4 py-2 text-xs font-semibold border-b-2 border-transparent hover:text-slate-900 transition text-brand-600 border-brand-600">Query Params</button>
+            <button onclick="switchReqTab('headers')" id="tab-btn-headers" class="px-4 py-2 text-xs font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-900 transition">Headers</button>
+            <button onclick="switchReqTab('body')" id="tab-btn-body" class="px-4 py-2 text-xs font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-900 transition">Body (JSON)</button>
+          </div>
+          
+          <!-- Params Tab -->
+          <div id="req-tab-params" class="flex-1 p-4 overflow-y-auto">
+            <div id="params-list" class="space-y-2"></div>
+            <button onclick="addKeyValueRow('params')" class="mt-3 text-xs font-semibold text-brand-600 hover:underline">+ Add Param</button>
+          </div>
+          
+          <!-- Headers Tab -->
+          <div id="req-tab-headers" class="flex-1 p-4 overflow-y-auto hidden">
+            <div id="headers-list" class="space-y-2"></div>
+            <button onclick="addKeyValueRow('headers')" class="mt-3 text-xs font-semibold text-brand-600 hover:underline">+ Add Header</button>
+          </div>
+          
+          <!-- Body Tab -->
+          <div id="req-tab-body" class="flex-1 flex flex-col hidden bg-slate-50">
+            <textarea id="req-body" class="json-editor flex-1 p-4 w-full" spellcheck="false" placeholder="{\n  // Enter JSON here\n}"></textarea>
+          </div>
+        </div>
+
+        <!-- RESPONSE PANEL -->
+        <div class="bg-slate-900 rounded-lg flex-1 flex flex-col min-h-[250px] shadow-lg overflow-hidden border border-slate-700">
+          <div class="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-slate-800/50">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Response</span>
+            <div class="flex items-center gap-4 text-xs font-mono">
+              <span id="res-status" class="text-slate-500">Status: <span class="font-bold">---</span></span>
+              <span id="res-time" class="text-slate-500">Time: <span class="font-bold">-- ms</span></span>
+            </div>
+          </div>
+          <div class="flex-1 relative overflow-auto p-4">
+            <pre id="res-body" class="font-mono text-sm text-emerald-400 m-0">Waiting for request...</pre>
+          </div>
+        </div>
+        
+        <!-- MISSION FEEDBACK BANNER -->
+        <div id="mission-feedback" class="hidden rounded-lg p-4 text-sm font-medium animate-slide-up shadow-sm mb-2"></div>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // ==========================================
+    // 1. STATE & UTILS
+    // ==========================================
+    let state = {
+      xp: 0,
+      currentMission: 0,
+      solved: [],
+      reqConfig: {
+        params: [{ key: '', value: '' }],
+        headers: [{ key: '', value: '' }]
+      }
+    };
+
+    const RANKS = [
+      { min: 0, title: 'Total Beginner' },
+      { min: 200, title: 'Script Kiddie' },
+      { min: 500, title: 'API Integrator' },
+      { min: 800, title: 'Systems Architect' },
+      { min: 1200, title: 'Protocol Hacker' },
+      { min: 1800, title: 'API Grandmaster' }
+    ];
+
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('api_quest_theme', isDark ? 'dark' : 'light');
+    }
+
+    function updateHUD() {
+      document.getElementById('hud-xp').textContent = `${state.xp} XP`;
+      let title = RANKS[0].title;
+      for (let r of RANKS) if (state.xp >= r.min) title = r.title;
+      document.getElementById('hud-rank').textContent = title;
+      
+      const pct = Math.min(100, (state.solved.length / MISSIONS.length) * 100);
+      document.getElementById('progress-bar').style.width = `${pct}%`;
+    }
+
+    // ==========================================
+    // 2. MOCK API SERVER LOGIC
+    // ==========================================
+    let db = {
+      users: [],
+      servers: [],
+      logs: [],
+      config: {}
+    };
+
+    function resetDB() {
+      db = {
+        users: [
+          { id: 1, name: "Alice Security", role: "admin", status: "active" }, 
+          { id: 2, name: "Bob Engineering", role: "user", status: "active" }
+        ],
+        servers: [
+          { id: "srv-alpha", status: "online", region: "us-east" }, 
+          { id: "srv-beta", status: "offline", region: "eu-west" },
+          { id: "srv-gamma", status: "online", region: "eu-west" }
+        ],
+        logs: Array.from({length: 105}, (_, i) => ({ id: i+1, event: `Log entry ${i+1}`, timestamp: new Date(Date.now() - i*10000).toISOString() })),
+        config: { firewall: "enabled", proxy: "active" }
+      };
+    }
+
+    // A fake router that intercepts requests
+    async function simulateServer(req) {
+      // Simulate network delay
+      await new Promise(r => setTimeout(r, 400 + Math.random() * 300));
+      
+      const { method, url, headers, body } = req;
+      let status = 404;
+      let data = { error: "Endpoint not found" };
+
+      try {
+        const urlObj = new URL(url);
+        const path = urlObj.pathname;
+        const queryParams = Object.fromEntries(urlObj.searchParams);
+
+        // ROUTE: /v1/ping (Absolute Beginner Intro)
+        if (path === '/v1/ping') {
+          if (method === 'GET') {
+            status = 200; data = { success: true, message: "PONG! Server is awake.", lesson: "Great job! You just made your first API request." };
+          } else {
+            status = 405; data = { error: "Method Not Allowed. Use GET to ping." };
+          }
+        }
+        
+        // ROUTE: /v1/servers
+        else if (path === '/v1/servers') {
+          if (method === 'GET') {
+            let filtered = db.servers;
+            if (queryParams.status) filtered = filtered.filter(s => s.status === queryParams.status);
+            if (queryParams.region) filtered = filtered.filter(s => s.region === queryParams.region);
+            status = 200; data = { success: true, count: filtered.length, data: filtered };
+          } else if (method === 'POST') {
+            const payload = JSON.parse(body || '{}');
+            if (!payload.name || !payload.region) {
+              status = 400; data = { error: "Missing required fields: 'name', 'region'" };
+            } else {
+              const newSrv = { id: `srv-${payload.name}`, status: "deploying", region: payload.region };
+              db.servers.push(newSrv);
+              status = 201; data = { success: true, message: "Server provisioning started", data: newSrv };
+            }
+          }
+        }
+        
+        // ROUTE: /v1/servers/:id
+        else if (path.startsWith('/v1/servers/')) {
+          const id = path.split('/')[3];
+          const srvIndex = db.servers.findIndex(s => s.id === id);
+          if (srvIndex === -1) {
+             status = 404; data = { error: `Server ${id} not found` };
+          } else if (method === 'DELETE') {
+             if (headers['authorization'] !== 'Bearer secure-token-123') {
+                status = 401; data = { error: "Unauthorized. Admin token required to terminate servers." };
+             } else if (queryParams.force !== 'true') {
+                status = 400; data = { error: "Safety lock active. Must pass ?force=true to delete a server." };
+             } else {
+                const deleted = db.servers.splice(srvIndex, 1)[0];
+                status = 200; data = { success: true, message: "Server terminated safely", deleted };
+             }
+          }
+        }
+        
+        // ROUTE: /v1/users
+        else if (path === '/v1/users') {
+          if (method === 'GET') {
+            if (headers['authorization'] !== 'Bearer secure-token-123') {
+               status = 401; data = { error: "Unauthorized. Valid Bearer token required." };
+            } else {
+               status = 200; data = { success: true, data: db.users };
+            }
+          }
+        }
+        
+        // ROUTE: /v1/users/:id
+        else if (path.startsWith('/v1/users/')) {
+          const idStr = path.split('/')[3];
+          const id = parseInt(idStr);
+          const userIndex = db.users.findIndex(u => u.id === id);
+          
+          if (userIndex === -1) {
+            status = 404; data = { error: `User ID ${id} not found` };
+          } else {
+            if (method === 'PUT') {
+              const payload = JSON.parse(body || '{}');
+              db.users[userIndex] = { ...db.users[userIndex], ...payload };
+              status = 200; data = { success: true, message: "User replaced completely", data: db.users[userIndex] };
+            } 
+            else if (method === 'PATCH') {
+              const payload = JSON.parse(body || '{}');
+              db.users[userIndex] = { ...db.users[userIndex], ...payload }; // simulated partial merge
+              status = 200; data = { success: true, message: "User partially updated", data: db.users[userIndex] };
+            }
+            else if (method === 'DELETE') {
+              const deleted = db.users.splice(userIndex, 1)[0];
+              status = 200; data = { success: true, message: "User terminated", deleted };
+            }
+          }
+        }
+        
+        // ROUTE: /v1/logs
+        else if (path === '/v1/logs') {
+          if (method === 'GET') {
+            const page = parseInt(queryParams.page) || 1;
+            const limit = parseInt(queryParams.limit) || 10;
+            const start = (page - 1) * limit;
+            const end = start + limit;
+            const paginated = db.logs.slice(start, end);
+            status = 200; 
+            data = { 
+              success: true, 
+              metadata: { total: db.logs.length, page, limit, totalPages: Math.ceil(db.logs.length / limit) }, 
+              data: paginated 
+            };
+          }
+        }
+        
+        // ROUTE: /v1/config
+        else if (path === '/v1/config') {
+          if (method === 'POST') {
+            const payload = JSON.parse(body || '{}');
+            if (payload.system && payload.system.firewall) {
+              db.config.firewall = payload.system.firewall;
+              status = 200; data = { success: true, message: "System config updated", config: db.config };
+            } else {
+              status = 400; data = { error: "Invalid payload format. Expected { system: { firewall: 'value' } }" };
+            }
+          }
+        }
+
+        // ROUTE: /v1/secure-vault
+        else if (path === '/v1/secure-vault') {
+          if (headers['x-bypass-ratelimit'] === 'true') {
+            status = 200; data = { success: true, secret_data: "CLASSIFIED_INTEL_8892" };
+          } else {
+            status = 429; data = { error: "Too Many Requests. Rate limit exceeded. (Hint: Send X-Bypass-RateLimit header)" };
+          }
+        }
+
+      } catch (e) {
+        status = 500;
+        data = { error: "Internal Server Error or Bad JSON parsing", details: e.message };
+      }
+
+      return { status, data };
+    }
+
+    // ==========================================
+    // 3. CURRICULUM / MISSIONS (FRESHE TO PRO)
+    // ==========================================
+    const BASE_URL = 'https://api.cybercorp.net';
+
+    const MISSIONS = [
+      // TIER 1: Ground Zero (Absolute Beginners)
+      {
+        id: 1, tier: 'Tier 1: Ground Zero', title: '1. Hello API', xp: 100,
+        story: 'An API (Application Programming Interface) is how programs talk to each other over the internet. You send a <strong>Request</strong>, and the server replies with a <strong>Response</strong>. Let\'s start by knocking on the server\'s door to see if it\'s awake.',
+        objective: 'Make a <code class="text-blue-600 font-bold">GET</code> request to <code class="font-mono bg-blue-100 rounded px-1">/v1/ping</code>. The "GET" method simply means "give me data". Click the Send button!',
+        setupUI: () => {
+          document.getElementById('req-method').value = 'GET';
+          document.getElementById('req-url').value = BASE_URL + '/v1/ping';
+          resetReqTabs();
+        },
+        validate: (req, res) => {
+          if (req.method !== 'GET') return "Wrong HTTP method. We need GET to read data.";
+          if (!req.url.includes('/v1/ping')) return "Wrong endpoint. Check the URL.";
+          if (res.status === 200) return true;
+          return "Request failed. Check the endpoint spelling.";
+        }
+      },
+      {
+        id: 2, tier: 'Tier 1: Ground Zero', title: '2. Endpoints', xp: 120,
+        story: 'APIs organize data into paths called <strong>Endpoints</strong>—think of them like folders on a computer. We don\'t want a ping anymore; we want to see the list of computers (servers) running on the network.',
+        objective: 'Change the URL endpoint from <code class="font-mono">/v1/ping</code> to <code class="font-mono bg-blue-100 rounded px-1">/v1/servers</code> and hit Send.',
+        setupUI: () => {
+          document.getElementById('req-method').value = 'GET';
+          document.getElementById('req-url').value = BASE_URL + '/v1/ping';
+          resetReqTabs();
+        },
+        validate: (req, res) => {
+          if (req.method !== 'GET') return "Wrong HTTP method. Keep it as GET.";
+          if (!req.url.includes('/v1/servers')) return "You are still pinging! Change the end of the URL to /v1/servers.";
+          if (res.status === 200) return true;
+          return "Something went wrong.";
+        }
+      },
+      {
+        id: 3, tier: 'Tier 1: Ground Zero', title: '3. Query Parameters', xp: 150,
+        story: 'Fetching EVERYTHING is slow. We can filter results using <strong>Query Parameters</strong>. These are attached to the end of the URL, starting with a <code class="font-mono">?</code> (e.g., <code class="font-mono">?color=red</code>).',
+        objective: 'We only want offline servers. Go to the "Query Params" tab. Add a Key of <code class="font-mono">status</code> and a Value of <code class="font-mono">offline</code>. Notice how it magically updates the URL for you!',
+        setupUI: () => {
+          document.getElementById('req-method').value = 'GET';
+          document.getElementById('req-url').value = BASE_URL + '/v1/servers';
+          resetReqTabs();
+        },
+        validate: (req, res) => {
+          if (!req.url.includes('status=offline')) return "URL is missing the ?status=offline query parameter. Did you type it in the Params tab?";
+          if (res.data.count !== 1) return "Did not filter correctly. Ensure status is exactly 'offline'.";
+          return true;
+        }
+      },
+      
+      // TIER 2: Speaking JSON
+      {
+        id: 4, tier: 'Tier 2: Speaking JSON', title: '4. Creating Data (POST)', xp: 180,
+        story: 'To create new data, we change the method to <code class="text-green-600 font-bold">POST</code>. We also have to send data in a format computers love: <strong>JSON</strong> (JavaScript Object Notation). It uses curly braces {} and quotes.',
+        objective: 'Change method to <code class="text-green-600 font-bold">POST</code> for <code class="font-mono">/v1/servers</code>. In the Body (JSON) tab, send valid JSON containing <code class="font-mono">"name"</code> and <code class="font-mono">"region"</code>.',
+        setupUI: () => {
+          document.getElementById('req-method').value = 'GET';
+          document.getElementById('req-url').value = BASE_URL + '/v1/servers';
+          resetReqTabs();
+          document.getElementById('req-body').value = '{\n  "name": "omega",\n  "region": "eu-west"\n}';
+        },
+        validate: (req, res) => {
+          if (req.method !== 'POST') return "You must use the POST method to create resources, not GET.";
+          if (res.status === 400) return "The server rejected the data: " + res.data.error;
+          if (res.status === 201) return true;
+          return "Unexpected error occurred.";
+        }
+      },
+      {
+        id: 5, tier: 'Tier 2: Speaking JSON', title: '5. Nested JSON', xp: 200,
+        story: 'Real-world JSON is often "nested" (folders inside folders). The config endpoint expects the firewall settings to be inside a parent object called "system".',
+        objective: 'Make a POST to <code class="font-mono">/v1/config</code>. Your JSON body must have a root object <code class="font-mono">system</code>, which contains a key <code class="font-mono">firewall</code> set to <code class="font-mono">"disabled"</code>.',
+        setupUI: () => {
+          document.getElementById('req-method').value = 'POST';
+          document.getElementById('req-url').value = BASE_URL + '/v1/config';
+          resetReqTabs();
+          document.getElementById('req-body').value = '{\n  "system": {\n    "firewall": "disabled"\n  }\n}';
+        },
+        validate: (req, res) => {
+          if (req.method !== 'POST') return "Method must be POST.";
+          if (res.status === 200 && res.data.config.firewall === 'disabled') return true;
+          return "JSON format incorrect. Expected: { \"system\": { \"firewall\": \"disabled\" } }";
+        }
+      },
+
+      // TIER 3: Security & Metadata
+      {
+        id: 6, tier: 'Tier 3: Security', title: '6. Hidden Headers', xp: 220,
+        story: 'Not all data is public. <strong>Headers</strong> are hidden metadata sent alongside your request—like flashing an ID badge. The user database is classified and requires a security token.',
+        objective: 'Make a GET request to <code class="font-mono">/v1/users</code>. Switch to the <strong>Headers</strong> tab. Add a Key called <code class="font-mono">Authorization</code> with the Value <code class="font-mono">Bearer secure-token-123</code>.',
+        setupUI: () => {
+          document.getElementById('req-method').value = 'GET';
+          document.getElementById('req-url').value = BASE_URL + '/v1/users';
+          resetReqTabs();
+        },
+        validate: (req, res) => {
+          if (res.status === 401) return "Auth failed. Did you spell 'Authorization' and 'Bearer secure-token-123' exactly right? Check the Headers tab.";
+          if (res.status === 200) return true;
+          return "Check the endpoint URL and try again.";
+        }
+      },
+      {
+        id: 7, tier: 'Tier 3: Security', title: '7. Custom Headers', xp: 240,
+        story: 'Servers often limit how many requests you can make (Rate Limiting). We have a secret custom header to bypass this restriction on the secure vault.',
+        objective: 'Make a GET to <code class="font-mono">/v1/secure-vault</code>. In Headers, add Key <code class="font-mono">X-Bypass-RateLimit</code> and Value <code class="font-mono">true</code>.',
+        setupUI: () => {
+          document.getElementById('req-method').value = 'GET';
+          document.getElementById('req-url').value = BASE_URL + '/v1/secure-vault';
+          resetReqTabs();
+          switchReqTab('headers');
+        },
+        validate: (req, res) => {
+          if (res.status === 429) return "Rate Limit triggered! You forgot to add the custom X-Bypass-RateLimit header.";
+          if (res.status === 200) return true;
+          return "Ensure method is GET and URL is correct.";
+        }
+      },
+
+      // TIER 4: Mutations
+      {
+        id: 8, tier: 'Tier 4: Mutations', title: '8. The Overwrite (PUT)', xp: 260,
+        story: 'If POST creates, how do we edit? A <code class="text-orange-500 font-bold">PUT</code> request is used to completely <strong>replace</strong> an existing record with new data.',
+        objective: 'Make a PUT request to <code class="font-mono">/v1/users/2</code> (targeting user ID 2). Send a JSON body changing their <code class="font-mono">"role"</code> to <code class="font-mono">"admin"</code> (include name and status too!).',
+        setupUI: () => {
+          document.getElementById('req-method').value = 'PUT';
+          document.getElementById('req-url').value = BASE_URL + '/v1/users/2';
+          resetReqTabs();
+          document.getElementById('req-body').value = '{\n  "name": "Bob Engineering",\n  "status": "active",\n  "role": "admin"\n}';
+        },
+        validate: (req, res) => {
+          if (req.method !== 'PUT') return "Use the PUT method.";
+          if (res.status === 404) return "User ID not found. Target /v1/users/2";
+          if (res.status === 200 && res.data.data.role === 'admin') return true;
+          return "The role was not updated. Check your JSON body.";
+        }
+      },
+      {
+        id: 9, tier: 'Tier 4: Mutations', title: '9. Precision Edit (PATCH)', xp: 280,
+        story: 'Sending the entire profile via PUT is annoying. A <code class="text-indigo-500 font-bold">PATCH</code> request allows us to update <strong>only specific fields</strong> without touching the rest.',
+        objective: 'Make a PATCH request to <code class="font-mono bg-blue-100 rounded px-1">/v1/users/1</code>. Send a JSON body with just <code class="font-mono">{"status": "suspended"}</code>.',
+        setupUI: () => {
+          const sel = document.getElementById('req-method');
+          if (!sel.querySelector('option[value="PATCH"]')) {
+             const opt = document.createElement('option');
+             opt.value = 'PATCH'; opt.textContent = 'PATCH'; opt.className = 'text-indigo-600 font-bold';
+             sel.appendChild(opt);
+          }
+          sel.value = 'PATCH';
+          document.getElementById('req-url').value = BASE_URL + '/v1/users/1';
+          resetReqTabs();
+          document.getElementById('req-body').value = '{\n  "status": "suspended"\n}';
+        },
+        validate: (req, res) => {
+          if (req.method !== 'PATCH') return "Professionals use PATCH for partial updates. Change method to PATCH.";
+          if (res.status === 200 && res.data.data.status === 'suspended') return true;
+          return "Failed to suspend Alice. Check JSON payload.";
+        }
+      },
+
+      // TIER 5: Advanced Tactics
+      {
+        id: 10, tier: 'Tier 5: Tactics', title: '10. Multi-Filtering', xp: 300,
+        story: 'You can chain multiple Query Parameters together using the <code class="font-bold">&</code> symbol in the URL (the Params tab does this for you!).',
+        objective: 'GET <code class="font-mono">/v1/servers</code>. Use the Params tab to add TWO filters: <code class="font-mono">status=online</code> and <code class="font-mono">region=eu-west</code>.',
+        setupUI: () => {
+          document.getElementById('req-method').value = 'GET';
+          document.getElementById('req-url').value = BASE_URL + '/v1/servers';
+          resetReqTabs();
+        },
+        validate: (req, res) => {
+          if (!req.url.includes('status=online') || !req.url.includes('region=eu-west')) return "URL must contain both parameters.";
+          if (res.data.count !== 1) return "Filtering failed. Did you chain them properly?";
+          return true;
+        }
+      },
+      {
+        id: 11, tier: 'Tier 5: Tactics', title: '11. Pagination', xp: 320,
+        story: 'If an API has millions of logs, it can\'t send them all at once. They are split into "pages". This is called Pagination.',
+        objective: 'GET <code class="font-mono">/v1/logs</code>. Add query params <code class="font-mono">page=3</code> and <code class="font-mono">limit=25</code> to get the 3rd chunk of logs.',
+        setupUI: () => {
+          document.getElementById('req-method').value = 'GET';
+          document.getElementById('req-url').value = BASE_URL + '/v1/logs';
+          resetReqTabs();
+        },
+        validate: (req, res) => {
+          if (res.status !== 200) return "Endpoint error.";
+          if (res.data.metadata.page !== 3 || res.data.metadata.limit !== 25) return "Pagination parameters not recognized. Check spelling of 'page' and 'limit'.";
+          return true;
+        }
+      },
+      
+      // TIER 6: The Hacker
+      {
+        id: 12, tier: 'Tier 6: Hacker', title: '12. The Master Payload', xp: 500,
+        story: 'Final Exam! A rogue server is attacking us. To destroy it, you need to combine the Method, the Auth Header, and a safety query parameter all at once.',
+        objective: 'Method <code class="font-mono font-bold text-red-500">DELETE</code> to <code class="font-mono">/v1/servers/srv-alpha</code>. You MUST pass the Bearer Auth Header, AND add a query param <code class="font-mono">force=true</code>.',
+        setupUI: () => {
+          document.getElementById('req-method').value = 'DELETE';
+          document.getElementById('req-url').value = BASE_URL + '/v1/servers/srv-alpha';
+          resetReqTabs();
+        },
+        validate: (req, res) => {
+          if (req.method !== 'DELETE') return "Must be DELETE method.";
+          if (res.status === 401) return "Forgot your Authorization Header? Bearer secure-token-123";
+          if (res.status === 400) return "Safety lock triggered. Forgot the ?force=true query parameter?";
+          if (res.status === 200) return true;
+          return "Check the target URL. Should be /v1/servers/srv-alpha";
+        }
+      }
+    ];
+
+    // ==========================================
+    // 4. UI HANDLING LOGIC
+    // ==========================================
+
+    function initApp() {
+      renderMissionList();
+      loadMission(0);
+      updateHUD();
+      
+      // Keep textarea indentation nice
+      document.getElementById('req-body').addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          const start = this.selectionStart;
+          const end = this.selectionEnd;
+          this.value = this.value.substring(0, start) + "  " + this.value.substring(end);
+          this.selectionStart = this.selectionEnd = start + 2;
+        }
+      });
+      
+      // Auto-update URL when params change
+      document.getElementById('params-list').addEventListener('input', () => {
+         const urlInput = document.getElementById('req-url');
+         try {
+           const url = new URL(urlInput.value.split('?')[0]);
+           state.reqConfig.params.forEach(p => {
+             if (p.key) url.searchParams.append(p.key, p.value);
+           });
+           urlInput.value = url.toString();
+         } catch(e) { /* Ignore invalid URL parsing while typing */ }
+      });
+    }
+
+    function renderMissionList() {
+      const list = document.getElementById('mission-list');
+      list.innerHTML = '';
+      MISSIONS.forEach((m, idx) => {
+        const isSolved = state.solved.includes(m.id);
+        const isActive = state.currentMission === idx;
+        
+        const btn = document.createElement('button');
+        btn.onclick = () => loadMission(idx);
+        btn.className = `w-full text-left px-3 py-3 rounded-xl text-sm flex items-center justify-between transition-all duration-200 border ${
+            isActive ? 'bg-white border-brand-300 shadow-md ring-1 ring-brand-500/20' : 'hover:bg-slate-50 border-transparent hover:border-slate-200'
+        }`;
+        
+        btn.innerHTML = `
+          <div class="flex items-center gap-2 truncate">
+            ${isSolved 
+              ? '<svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
+              : '<div class="w-1.5 h-1.5 rounded-full bg-slate-300 flex-shrink-0 ml-1"></div>'
+            }
+            <span class="${isActive ? 'font-bold text-brand-700' : 'text-slate-600'} truncate">${m.title}</span>
+          </div>
+          <span class="text-[10px] font-mono text-slate-400">XP</span>
+        `;
+        list.appendChild(btn);
+      });
+    }
+
+    function loadMission(idx) {
+      state.currentMission = idx;
+      const m = MISSIONS[idx];
+      resetDB(); // Ensure DB is clean for each attempt
+      
+      document.getElementById('mission-tier').textContent = m.tier;
+      document.getElementById('mission-xp').textContent = `+${m.xp} XP`;
+      document.getElementById('mission-title').textContent = m.title;
+      document.getElementById('mission-story').textContent = m.story;
+      document.getElementById('mission-objective').innerHTML = m.objective;
+      
+      // Clear outputs
+      document.getElementById('res-status').innerHTML = `Status: <span class="font-bold">---</span>`;
+      document.getElementById('res-time').innerHTML = `Time: <span class="font-bold">-- ms</span>`;
+      document.getElementById('res-body').textContent = 'Waiting for request...';
+      document.getElementById('res-body').className = 'font-mono text-sm text-slate-500 m-0';
+      document.getElementById('mission-feedback').classList.add('hidden');
+
+      // Setup Inputs
+      m.setupUI();
+      renderMissionList();
+    }
+
+    function switchReqTab(tabName) {
+      ['params', 'headers', 'body'].forEach(t => {
+        document.getElementById(`req-tab-${t}`).classList.toggle('hidden', t !== tabName);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (t === tabName) {
+          btn.className = 'px-4 py-2 text-xs font-semibold border-b-2 transition text-brand-600 border-brand-600';
+        } else {
+          btn.className = 'px-4 py-2 text-xs font-semibold border-b-2 border-transparent transition text-slate-500 hover:text-slate-900';
+        }
+      });
+    }
+
+    function resetReqTabs() {
+      state.reqConfig = { params: [{ key: '', value: '' }], headers: [{ key: '', value: '' }] };
+      renderKeyValueUI('params');
+      renderKeyValueUI('headers');
+      document.getElementById('req-body').value = '';
+      switchReqTab('params');
+    }
+
+    function addKeyValueRow(type) {
+      state.reqConfig[type].push({ key: '', value: '' });
+      renderKeyValueUI(type);
+    }
+
+    function removeKeyValueRow(type, index) {
+      state.reqConfig[type].splice(index, 1);
+      if (state.reqConfig[type].length === 0) state.reqConfig[type].push({ key: '', value: '' });
+      renderKeyValueUI(type);
+    }
+
+    function updateKeyValue(type, index, field, value) {
+      state.reqConfig[type][index][field] = value;
+      if (type === 'params') {
+         // Trigger URL rebuild event
+         document.getElementById('params-list').dispatchEvent(new Event('input'));
+      }
+    }
+
+    function renderKeyValueUI(type) {
+      const container = document.getElementById(`${type}-list`);
+      container.innerHTML = '';
+      state.reqConfig[type].forEach((row, i) => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-2';
+        div.innerHTML = `
+          <input type="text" placeholder="Key" value="${row.key}" oninput="updateKeyValue('${type}', ${i}, 'key', this.value)" class="flex-1 bg-white border border-slate-300 rounded px-3 py-1.5 text-xs font-mono outline-none focus:border-brand-500">
+          <input type="text" placeholder="Value" value="${row.value}" oninput="updateKeyValue('${type}', ${i}, 'value', this.value)" class="flex-1 bg-white border border-slate-300 rounded px-3 py-1.5 text-xs font-mono outline-none focus:border-brand-500">
+          <button onclick="removeKeyValueRow('${type}', ${i})" class="text-slate-400 hover:text-red-500 p-1">
+             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // ==========================================
+    // 5. EXECUTION & VALIDATION
+    // ==========================================
+
+    async function sendRequest() {
+      const method = document.getElementById('req-method').value;
+      const url = document.getElementById('req-url').value;
+      const bodyText = document.getElementById('req-body').value;
+      
+      // Parse Headers
+      const headers = {};
+      state.reqConfig.headers.forEach(h => {
+        if (h.key) headers[h.key.toLowerCase()] = h.value;
+      });
+
+      const reqObj = { method, url, headers, body: bodyText };
+      
+      document.getElementById('res-body').textContent = 'Fetching...';
+      document.getElementById('res-body').className = 'font-mono text-sm text-slate-500 m-0 animate-pulse';
+      document.getElementById('mission-feedback').classList.add('hidden');
+
+      const startTime = performance.now();
+      
+      // CALL MOCK SERVER
+      const resObj = await simulateServer(reqObj);
+      
+      const latency = Math.round(performance.now() - startTime);
+
+      // Render Response
+      const statusColor = resObj.status < 300 ? 'status-success' : (resObj.status < 500 ? 'status-warn' : 'status-error');
+      document.getElementById('res-status').innerHTML = `Status: <span class="font-bold ${statusColor}">${resObj.status}</span>`;
+      document.getElementById('res-time').innerHTML = `Time: <span class="font-bold text-emerald-600">${latency} ms</span>`;
+      
+      document.getElementById('res-body').textContent = JSON.stringify(resObj.data, null, 2);
+      document.getElementById('res-body').className = `font-mono text-sm m-0 ${resObj.status < 400 ? 'text-emerald-500' : 'text-amber-500'}`;
+
+      // Validate Mission
+      const m = MISSIONS[state.currentMission];
+      const validationResult = m.validate(reqObj, resObj);
+      
+      const fb = document.getElementById('mission-feedback');
+      fb.classList.remove('hidden');
+
+      if (validationResult === true) {
+        // Success
+        fb.className = 'rounded-lg p-4 text-sm font-medium animate-slide-up shadow-sm mb-2 bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-between';
+        
+        let xpGranted = false;
+        if (!state.solved.includes(m.id)) {
+          state.solved.push(m.id);
+          state.xp += m.xp;
+          xpGranted = true;
+          if (typeof confetti === 'function') confetti({ particleCount: 50, spread: 50, origin: { y: 0.8 } });
+        }
+        updateHUD();
+        renderMissionList();
+
+        fb.innerHTML = `
+          <div class="flex items-center gap-3">
+             <svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+             <div>
+               <strong class="block">Request Successful!</strong>
+               <span class="text-xs text-emerald-600">${xpGranted ? `+${m.xp} XP Earned!` : 'Already completed.'}</span>
+             </div>
+          </div>
+          ${state.currentMission < MISSIONS.length - 1 ? `<button onclick="loadMission(${state.currentMission + 1})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded text-xs font-bold transition shadow">Next Mission</button>` : ''}
+        `;
+      } else {
+        // Fail
+        fb.className = 'rounded-lg p-4 text-sm font-medium animate-slide-up shadow-sm mb-2 bg-orange-50 border border-orange-200 text-orange-800 flex items-center gap-3';
+        fb.innerHTML = `
+          <svg class="w-6 h-6 text-orange-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          <div>
+             <strong class="block text-orange-700">Objective Failed</strong>
+             <span class="text-xs text-orange-600">${validationResult}</span>
+          </div>
+        `;
+      }
+    }
+
+    // Start App
+    window.onload = initApp;
+
+  </script>
+</body>
+</html>
