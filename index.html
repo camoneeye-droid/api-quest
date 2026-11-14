@@ -137,12 +137,34 @@
           <span id="mission-xp" class="text-xs font-mono text-emerald-600 font-semibold">+100 XP</span>
         </div>
         <h2 id="mission-title" class="text-xl font-bold text-slate-900 mb-2">Mission Title</h2>
-        <p id="mission-story" class="text-sm text-slate-600 leading-relaxed mb-3"></p>
-        <div class="p-3 rounded-xl bg-blue-50/50 border border-blue-100 flex gap-3 text-sm">
-          <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          <div>
-            <strong class="text-slate-900 block mb-0.5">Objective</strong>
-            <span id="mission-objective" class="text-slate-700"></span>
+        
+        <!-- NEW TABS FOR LEARNING -->
+        <div class="flex gap-4 border-b border-slate-200 mb-4 mt-2">
+          <button id="tab-btn-briefing" onclick="switchMissionTab('briefing')" class="pb-2 text-sm font-bold text-brand-600 border-b-2 border-brand-600 transition">Objective</button>
+          <button id="tab-btn-concept" onclick="switchMissionTab('concept')" class="pb-2 text-sm font-bold text-slate-500 border-b-2 border-transparent hover:text-slate-800 transition flex items-center gap-1 relative">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+            Learn Theory
+            <span class="absolute -top-1 -right-2 flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
+            </span>
+          </button>
+        </div>
+
+        <div id="mission-tab-briefing" class="block">
+          <p id="mission-story" class="text-sm text-slate-600 leading-relaxed mb-3"></p>
+          <div class="p-3 rounded-xl bg-blue-50/50 border border-blue-100 flex gap-3 text-sm">
+            <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div>
+              <strong class="text-slate-900 block mb-0.5">Objective</strong>
+              <span id="mission-objective" class="text-slate-700"></span>
+            </div>
+          </div>
+        </div>
+
+        <div id="mission-tab-concept" class="hidden">
+          <div id="mission-concept" class="text-sm text-slate-700 space-y-3 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-inner">
+            <!-- Concept text injected here -->
           </div>
         </div>
       </div>
@@ -431,6 +453,7 @@
         id: 1, tier: 'Tier 1: Ground Zero', title: '1. Hello API', xp: 100,
         story: 'An API (Application Programming Interface) is how programs talk to each other over the internet. You send a <strong>Request</strong>, and the server replies with a <strong>Response</strong>. Let\'s start by knocking on the server\'s door to see if it\'s awake.',
         objective: 'Make a <code class="text-blue-600 font-bold">GET</code> request to <code class="font-mono bg-blue-100 rounded px-1">/v1/ping</code>. The "GET" method simply means "give me data". Click the Send button!',
+        concept: '<h3 class="font-bold text-slate-900 mb-1 border-b pb-1">What is an API?</h3><p>Think of an API like a <strong>Waiter in a Restaurant</strong>.</p><ul class="list-disc pl-5 space-y-1"><li><strong>You (The Client):</strong> You look at the menu and decide what you want.</li><li><strong>The Kitchen (The Server/Database):</strong> This is where the food (data) lives. But you can\'t just walk into the kitchen yourself!</li><li><strong>The Waiter (The API):</strong> You give your order (<strong>Request</strong>) to the waiter, they take it to the kitchen, and bring your food (<strong>Response</strong>) back to your table.</li></ul><p>In APIs, the <code>GET</code> method is you saying "Please bring me this item."</p>',
         setupUI: () => {
           document.getElementById('req-method').value = 'GET';
           document.getElementById('req-url').value = BASE_URL + '/v1/ping';
@@ -447,6 +470,7 @@
         id: 2, tier: 'Tier 1: Ground Zero', title: '2. Endpoints', xp: 120,
         story: 'APIs organize data into paths called <strong>Endpoints</strong>—think of them like folders on a computer. We don\'t want a ping anymore; we want to see the list of computers (servers) running on the network.',
         objective: 'Change the URL endpoint from <code class="font-mono">/v1/ping</code> to <code class="font-mono bg-blue-100 rounded px-1">/v1/servers</code> and hit Send.',
+        concept: '<h3 class="font-bold text-slate-900 mb-1 border-b pb-1">What is an Endpoint?</h3><p>A server holds many different types of data. To keep it organized, APIs use <strong>Endpoints</strong>. You can think of endpoints like different aisles in a grocery store.</p><ul class="list-disc pl-5 space-y-1"><li><code>https://api.cybercorp.net</code> is the address of the store.</li><li><code>/v1/ping</code> is the front desk.</li><li><code>/v1/servers</code> is the electronics aisle.</li></ul><p>By changing the endpoint at the end of the URL, you tell the API exactly which "aisle" to fetch data from.</p>',
         setupUI: () => {
           document.getElementById('req-method').value = 'GET';
           document.getElementById('req-url').value = BASE_URL + '/v1/ping';
@@ -463,6 +487,7 @@
         id: 3, tier: 'Tier 1: Ground Zero', title: '3. Query Parameters', xp: 150,
         story: 'Fetching EVERYTHING is slow. We can filter results using <strong>Query Parameters</strong>. These are attached to the end of the URL, starting with a <code class="font-mono">?</code> (e.g., <code class="font-mono">?color=red</code>).',
         objective: 'We only want offline servers. Go to the "Query Params" tab. Add a Key of <code class="font-mono">status</code> and a Value of <code class="font-mono">offline</code>. Notice how it magically updates the URL for you!',
+        concept: '<h3 class="font-bold text-slate-900 mb-1 border-b pb-1">What are Query Parameters?</h3><p>Sometimes an endpoint has too much data. If you ask for "all servers", you might get millions! <strong>Query Parameters</strong> act like filters or search terms.</p><p>They always start with a question mark <code>?</code> at the very end of the URL, followed by <code>key=value</code> pairs. For example, <code>?color=red</code> tells the API "Only give me the red ones".</p><p>By using the "Query Params" tab below, the tool automatically types the <code>?</code> and <code>=</code> into the URL for you!</p>',
         setupUI: () => {
           document.getElementById('req-method').value = 'GET';
           document.getElementById('req-url').value = BASE_URL + '/v1/servers';
@@ -480,6 +505,7 @@
         id: 4, tier: 'Tier 2: Speaking JSON', title: '4. Creating Data (POST)', xp: 180,
         story: 'To create new data, we change the method to <code class="text-green-600 font-bold">POST</code>. We also have to send data in a format computers love: <strong>JSON</strong> (JavaScript Object Notation). It uses curly braces {} and quotes.',
         objective: 'Change method to <code class="text-green-600 font-bold">POST</code> for <code class="font-mono">/v1/servers</code>. In the Body (JSON) tab, send valid JSON containing <code class="font-mono">"name"</code> and <code class="font-mono">"region"</code>.',
+        concept: '<h3 class="font-bold text-slate-900 mb-1 border-b pb-1">What is POST and JSON?</h3><p>If <code>GET</code> is "give me data", then <code>POST</code> is "here is new data, please save it". Think of it like filling out a registration form and hitting submit.</p><p>But how do we format the form so the server understands it? We use <strong>JSON (JavaScript Object Notation)</strong>. It is the universal language of modern APIs. It uses curly braces <code>{}</code> to group things, and lists data in pairs of keys and values, wrapped in double quotes.</p><pre class="bg-slate-200 p-2 rounded text-xs mt-2">{\n  "name": "omega",\n  "region": "eu-west"\n}</pre>',
         setupUI: () => {
           document.getElementById('req-method').value = 'GET';
           document.getElementById('req-url').value = BASE_URL + '/v1/servers';
@@ -497,6 +523,7 @@
         id: 5, tier: 'Tier 2: Speaking JSON', title: '5. Nested JSON', xp: 200,
         story: 'Real-world JSON is often "nested" (folders inside folders). The config endpoint expects the firewall settings to be inside a parent object called "system".',
         objective: 'Make a POST to <code class="font-mono">/v1/config</code>. Your JSON body must have a root object <code class="font-mono">system</code>, which contains a key <code class="font-mono">firewall</code> set to <code class="font-mono">"disabled"</code>.',
+        concept: '<h3 class="font-bold text-slate-900 mb-1 border-b pb-1">What is Nested JSON?</h3><p>Often, data is too complex for a flat list. JSON allows you to put objects <em>inside</em> other objects. Think of it like folders on your computer.</p><p>If you have a "System" folder, and inside that you have a "Firewall" setting, in JSON it looks like this:</p><pre class="bg-slate-200 p-2 rounded text-xs mt-2">{\n  "system": {\n    "firewall": "disabled"\n  }\n}</pre><p>Notice how the value for "system" is an entirely new set of curly braces <code>{}</code>!</p>',
         setupUI: () => {
           document.getElementById('req-method').value = 'POST';
           document.getElementById('req-url').value = BASE_URL + '/v1/config';
@@ -515,6 +542,7 @@
         id: 6, tier: 'Tier 3: Security', title: '6. Hidden Headers', xp: 220,
         story: 'Not all data is public. <strong>Headers</strong> are hidden metadata sent alongside your request—like flashing an ID badge. The user database is classified and requires a security token.',
         objective: 'Make a GET request to <code class="font-mono">/v1/users</code>. Switch to the <strong>Headers</strong> tab. Add a Key called <code class="font-mono">Authorization</code> with the Value <code class="font-mono">Bearer secure-token-123</code>.',
+        concept: '<h3 class="font-bold text-slate-900 mb-1 border-b pb-1">What are Headers?</h3><p>When you mail a letter, the letter itself is the "Body" (JSON), but the <strong>envelope</strong> has the postage stamp, the return address, and "Fragile" stickers. That envelope data is what <strong>Headers</strong> are.</p><p>Headers are invisible metadata sent with every request. The most common use for a Header is <strong>Authentication</strong>—proving who you are. By passing a secret token (like a VIP wristband) in the "Authorization" header, the server knows it is safe to let you in.</p>',
         setupUI: () => {
           document.getElementById('req-method').value = 'GET';
           document.getElementById('req-url').value = BASE_URL + '/v1/users';
@@ -530,6 +558,7 @@
         id: 7, tier: 'Tier 3: Security', title: '7. Custom Headers', xp: 240,
         story: 'Servers often limit how many requests you can make (Rate Limiting). We have a secret custom header to bypass this restriction on the secure vault.',
         objective: 'Make a GET to <code class="font-mono">/v1/secure-vault</code>. In Headers, add Key <code class="font-mono">X-Bypass-RateLimit</code> and Value <code class="font-mono">true</code>.',
+        concept: '<h3 class="font-bold text-slate-900 mb-1 border-b pb-1">Custom Headers (The X- Prefix)</h3><p>While standard headers (like Authorization or Content-Type) are built into the rules of the internet, developers can create <strong>Custom Headers</strong> for their own apps.</p><p>By convention, custom headers usually start with <code>X-</code> (e.g., <code>X-Api-Version</code> or <code>X-Bypass-RateLimit</code>). They act like secret switches or cheat codes that the server is specifically programmed to look for.</p>',
         setupUI: () => {
           document.getElementById('req-method').value = 'GET';
           document.getElementById('req-url').value = BASE_URL + '/v1/secure-vault';
@@ -548,6 +577,7 @@
         id: 8, tier: 'Tier 4: Mutations', title: '8. The Overwrite (PUT)', xp: 260,
         story: 'If POST creates, how do we edit? A <code class="text-orange-500 font-bold">PUT</code> request is used to completely <strong>replace</strong> an existing record with new data.',
         objective: 'Make a PUT request to <code class="font-mono">/v1/users/2</code> (targeting user ID 2). Send a JSON body changing their <code class="font-mono">"role"</code> to <code class="font-mono">"admin"</code> (include name and status too!).',
+        concept: '<h3 class="font-bold text-slate-900 mb-1 border-b pb-1">What is PUT?</h3><p>If <code>POST</code> is creating a brand new document, <code>PUT</code> is taking an existing document, throwing it in the trash, and replacing it entirely with a new one.</p><p>Because <code>PUT</code> replaces the <em>entire</em> record, your JSON body must include all the required fields (like name and status), even if you only wanted to change one thing (like the role). If you forget a field, it gets deleted!</p>',
         setupUI: () => {
           document.getElementById('req-method').value = 'PUT';
           document.getElementById('req-url').value = BASE_URL + '/v1/users/2';
@@ -565,6 +595,7 @@
         id: 9, tier: 'Tier 4: Mutations', title: '9. Precision Edit (PATCH)', xp: 280,
         story: 'Sending the entire profile via PUT is annoying. A <code class="text-indigo-500 font-bold">PATCH</code> request allows us to update <strong>only specific fields</strong> without touching the rest.',
         objective: 'Make a PATCH request to <code class="font-mono bg-blue-100 rounded px-1">/v1/users/1</code>. Send a JSON body with just <code class="font-mono">{"status": "suspended"}</code>.',
+        concept: '<h3 class="font-bold text-slate-900 mb-1 border-b pb-1">What is PATCH?</h3><p>If <code>PUT</code> is replacing the entire car engine, <code>PATCH</code> is just changing a single spark plug.</p><p><code>PATCH</code> is a "partial update". You only need to send the exact JSON fields you want to change, and the server will merge them with the existing data without deleting the rest of the user\'s profile.</p>',
         setupUI: () => {
           const sel = document.getElementById('req-method');
           if (!sel.querySelector('option[value="PATCH"]')) {
@@ -589,6 +620,7 @@
         id: 10, tier: 'Tier 5: Tactics', title: '10. Multi-Filtering', xp: 300,
         story: 'You can chain multiple Query Parameters together using the <code class="font-bold">&</code> symbol in the URL (the Params tab does this for you!).',
         objective: 'GET <code class="font-mono">/v1/servers</code>. Use the Params tab to add TWO filters: <code class="font-mono">status=online</code> and <code class="font-mono">region=eu-west</code>.',
+        concept: '<h3 class="font-bold text-slate-900 mb-1 border-b pb-1">Chaining Parameters</h3><p>When you shop online, you might filter by "Shoes", AND "Size 10", AND "Color Black". APIs do the exact same thing.</p><p>In a URL, the first query parameter starts with a <code>?</code>. Every parameter after that is chained together with an ampersand <code>&</code>.</p><p>Example: <code>/v1/items?category=shoes&size=10&color=black</code></p>',
         setupUI: () => {
           document.getElementById('req-method').value = 'GET';
           document.getElementById('req-url').value = BASE_URL + '/v1/servers';
@@ -604,6 +636,7 @@
         id: 11, tier: 'Tier 5: Tactics', title: '11. Pagination', xp: 320,
         story: 'If an API has millions of logs, it can\'t send them all at once. They are split into "pages". This is called Pagination.',
         objective: 'GET <code class="font-mono">/v1/logs</code>. Add query params <code class="font-mono">page=3</code> and <code class="font-mono">limit=25</code> to get the 3rd chunk of logs.',
+        concept: '<h3 class="font-bold text-slate-900 mb-1 border-b pb-1">What is Pagination?</h3><p>If you search Google for "Cats", it doesn\'t send you 3 billion results on one screen. It sends you 10 results, and gives you a "Next Page" button. This is Pagination.</p><p>APIs handle this using two standard Query Parameters:</p><ul class="list-disc pl-5 space-y-1"><li><code>limit</code> (or <code>size</code>): How many items per page? (e.g., 25)</li><li><code>page</code> (or <code>offset</code>): Which chunk do you want? (e.g., Page 3)</li></ul>',
         setupUI: () => {
           document.getElementById('req-method').value = 'GET';
           document.getElementById('req-url').value = BASE_URL + '/v1/logs';
@@ -621,6 +654,7 @@
         id: 12, tier: 'Tier 6: Hacker', title: '12. The Master Payload', xp: 500,
         story: 'Final Exam! A rogue server is attacking us. To destroy it, you need to combine the Method, the Auth Header, and a safety query parameter all at once.',
         objective: 'Method <code class="font-mono font-bold text-red-500">DELETE</code> to <code class="font-mono">/v1/servers/srv-alpha</code>. You MUST pass the Bearer Auth Header, AND add a query param <code class="font-mono">force=true</code>.',
+        concept: '<h3 class="font-bold text-slate-900 mb-1 border-b pb-1">The Master Payload</h3><p>In the real world, a single API request utilizes everything you just learned simultaneously.</p><p>To perform a destructive action like <code>DELETE</code>, a well-designed API will require:</p><ol class="list-decimal pl-5 space-y-1"><li>The correct <strong>Method</strong> (DELETE).</li><li>The exact <strong>Endpoint</strong> ID (srv-alpha).</li><li>An <strong>Authorization Header</strong> to prove you have admin rights.</li><li>A <strong>Query Parameter</strong> (force=true) acting as a safety switch to prevent accidental clicks.</li></ol><p>Combine them all to complete your training!</p>',
         setupUI: () => {
           document.getElementById('req-method').value = 'DELETE';
           document.getElementById('req-url').value = BASE_URL + '/v1/servers/srv-alpha';
@@ -706,7 +740,11 @@
       document.getElementById('mission-title').textContent = m.title;
       document.getElementById('mission-story').textContent = m.story;
       document.getElementById('mission-objective').innerHTML = m.objective;
+      document.getElementById('mission-concept').innerHTML = m.concept || "No theory provided for this mission.";
       
+      // Auto-switch to Briefing tab on new mission
+      switchMissionTab('briefing');
+
       // Clear outputs
       document.getElementById('res-status').innerHTML = `Status: <span class="font-bold">---</span>`;
       document.getElementById('res-time').innerHTML = `Time: <span class="font-bold">-- ms</span>`;
@@ -729,6 +767,27 @@
           btn.className = 'px-4 py-2 text-xs font-semibold border-b-2 border-transparent transition text-slate-500 hover:text-slate-900';
         }
       });
+    }
+
+    function switchMissionTab(tabName) {
+      const isBrief = tabName === 'briefing';
+      document.getElementById('mission-tab-briefing').classList.toggle('hidden', !isBrief);
+      document.getElementById('mission-tab-concept').classList.toggle('hidden', isBrief);
+      
+      const btnBrief = document.getElementById('tab-btn-briefing');
+      const btnConcept = document.getElementById('tab-btn-concept');
+      
+      if (isBrief) {
+        btnBrief.className = 'pb-2 text-sm font-bold text-brand-600 border-b-2 border-brand-600 transition';
+        btnConcept.className = 'pb-2 text-sm font-bold text-slate-500 border-b-2 border-transparent hover:text-slate-800 transition flex items-center gap-1 relative';
+      } else {
+        btnBrief.className = 'pb-2 text-sm font-bold text-slate-500 border-b-2 border-transparent hover:text-slate-800 transition';
+        btnConcept.className = 'pb-2 text-sm font-bold text-brand-600 border-b-2 border-brand-600 transition flex items-center gap-1 relative';
+        
+        // Hide the ping notification dot once viewed
+        const ping = btnConcept.querySelector('.animate-ping');
+        if (ping) ping.parentElement.remove();
+      }
     }
 
     function resetReqTabs() {
